@@ -1,0 +1,202 @@
+#include "opencv2/opencv.hpp"
+#include <iostream>
+#include <ctime>
+#include <vector>
+#include <windows.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
+//구조체 설정
+struct Ball {
+    cv::Point position;
+    int radius;
+    int active; 
+    Ball() : position(0, 0), radius(20), active(1) {}
+};
+
+//강아지가 화면밖으로 나기지않게 안전한 좌표를 계산하는 함수
+cv::Point getRandomPosition(int width, int height, int radius) {
+    //화면이 강아지보다 작을 때
+    if (width <= 2 * radius || height <= 2 * radius) 
+        //강아지를 정중앙으로
+        return cv::Point(width / 2, height / 2);
+    int x = rand() % (width - 2 * radius) + radius;
+    int y = rand() % (height - 2 * radius) + radius;
+    return cv::Point(x, y);
+}
+
+void runProject() CV_NOEXCEPT {
+    srand((unsigned int)time(0));
+
+    //캠설정
+    cv::VideoCapture cap(0);
+    if (!cap.isOpened()) {
+        std::cerr << "캠을 열 수 없습니다." << std::endl;
+        return;
+    }
+
+    //사진불러오기
+    cv::Mat DogImg = cv::imread("dog2.jpg");
+    if (DogImg.empty()) {
+        std::cerr << "사진 로드 실패! 기본 사각형 사용." << std::endl;
+        DogImg = cv::Mat(60, 60, CV_8UC3, cv::Scalar(0, 0, 255));
+    }
+    cv::resize(DogImg, DogImg, cv::Size(60, 60));
+
+    //카메라의 가로, 새로 길이
+    int width = cvRound(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+    int height = cvRound(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+    
+    //이전단계의 사진을 저장할 것
+    cv::Mat prev_gray;
+
+    //객체생성 및 랜덤위치에서 시작
+    Ball DogBall;
+    DogBall.position = getRandomPosition(width, height, DogBall.radius);
+
+
+    //필요한 변수선언
+    int score = 0;
+    cv::Scalar colorcode = cv::Scalar(0, 0, 0);
+    int flipcode = 0;
+    // bgm.mp3 파일을 열고 'myBGM'이라는 이름(별명)을 붙입니다.
+    mciSendString(L"open bgm.wav type mpegvideo alias myBGM", NULL, 0, NULL);
+    // 무한 반복(repeat) 재생합니다.
+    mciSendString(L"play myBGM repeat", NULL, 0, NULL);
+
+    //무한루프 시작
+    while (true) {
+        //frame-원본 , gray frame- 흑백. diff- 이전사진과 다른점, thresh- 차이가 큰 부분하얗게
+        cv::Mat frame, gray_frame, diff, thresh;
+        //이 줄이 실행될때마다 원본
+        cap >> frame;
+        if (frame.empty()) break;
+        //사진 좌우반전으로 보기편하게
+        cv::flip(frame, frame, 1);
+        //컬러->흑백 (데이터양을 줄여 더 빠르게)
+        cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
+        //사진을 블러처리함(노이즈 무시)
+        cv::GaussianBlur(gray_frame, gray_frame, cv::Size(15, 15), 0);
+
+        //만약 첫번째면 다음으로 넘어감
+        if (prev_gray.empty()) {
+            gray_frame.copyTo(prev_gray);
+            continue;
+        }
+        
+        ////움직임을 잡는 필터 만들기
+        //과거사진과 현재사진의 차이를 구함, 변하지않는 부분은 0검정, 움직인 부분은 0이아닌 밝은색
+        cv::absdiff(prev_gray, gray_frame, diff);
+        //차이점,결과물, 임계값, 최대값, 이진화
+        //25보다 적게 차이나면 검은색 0, 25보다 크게 변하면 255, 이진화 검은색 혹은 흰색 두가지로 나누겠다는 것
+        cv::threshold(diff, thresh, 25.0, 255.0, cv::THRESH_BINARY);
+
+        //네모 만들기-MAX,MIN을 이용하여 0보다는 크고 화면크기보다는 작은 좌표를 만듬
+        int x1 = (cv::max)(0, DogBall.position.x - DogBall.radius);
+        int y1 = (cv::max)(0, DogBall.position.y - DogBall.radius);
+        int x2 = (cv::min)(width, DogBall.position.x + DogBall.radius);
+        int y2 = (cv::min)(height, DogBall.position.y + DogBall.radius);
+        cv::Rect ballRect(x1, y1, x2 - x1, y2 - y1);
+
+
+        //강아지영역이 화면안에 존재할때
+        if (ballRect.width > 0 && ballRect.height > 0) {
+            //관심영역 = 네모칸만
+            cv::Mat roi = thresh(ballRect);
+
+            //잘라온영역의 10%이상이 흰색이면 터치
+            if (cv::countNonZero(roi) > ballRect.area() * 0.1) {
+                std::cout << "터치! 점수: " << ++score << "\r\n";
+                //음향효과
+                PlaySound(TEXT("bark.wav"), NULL, SND_FILENAME | SND_ASYNC);
+
+                //switch문 
+                DogBall.active = (DogBall.active % 5) + 1;
+                DogBall.position = getRandomPosition(width, height, DogBall.radius);
+
+                //랜덤색깔설정
+                colorcode = cv::Scalar(rand() % 256, rand() % 256, rand() % 256);
+
+                //랜덤대칭설정
+                flipcode = (rand() % 3) - 1;
+            }
+        }
+
+        //기본출력 크기를  60으로
+        int newSize = 60;
+        //원본을 쓰면 또 쓸수없기에 복사본 만들기
+        cv::Mat effectImg = DogImg.clone();
+
+        //강아지가 터치된 이후 어떤 상태가 되는지
+        switch (DogBall.active) {
+        case 1:
+            //크기변환
+            newSize = 400;
+            cv::resize(DogImg, effectImg, cv::Size(newSize, newSize));
+            break;
+        case 2:
+            //원본에 랜덤 색상 더하기
+            effectImg = DogImg + colorcode;
+           break;
+        case 3: 
+            //반전
+            effectImg =~ DogImg;
+            break;
+        case 4: 
+            //축이동
+            cv::flip(DogImg, effectImg, flipcode);
+            break;
+        case 5:
+            //모핑
+            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
+            cv::morphologyEx(DogImg, effectImg, cv::MORPH_OPEN, kernel, cv::Point(-1, -1), 5);
+            break;
+        }
+         
+        // --- 화면 그리기 ---
+        cv::Rect drawRect(DogBall.position.x - newSize/2, DogBall.position.y - newSize/2, newSize, newSize);
+        drawRect &= cv::Rect(0, 0, width, height);
+
+        //화면의 길이, 높이가 0보다크면 
+        if (drawRect.width > 0 && drawRect.height > 0) {
+            //타겟로아이에 화면을 넣는다
+            cv::Mat targetROI = frame(drawRect);
+            cv::Mat resizedImg;
+            //이펙트 이미지에 타겟로아이사이즈로 맞처라
+            cv::resize(effectImg, resizedImg, targetROI.size());
+            //타겟로아이의 데이터를 리사이즈드에 덮어쓴다
+            resizedImg.copyTo(targetROI);
+        }
+
+        //20,30지점에 점수화면 출력
+        cv::putText(frame, "Score : " + std::to_string(score), cv::Point(20, 30),
+            cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 255, 255), 2);
+
+        
+        //15마리를 다 잡으면 게임클리어로 종료
+        if (score == 15)
+        {
+            cv::putText(frame, "Game Clear!! ", cv::Point(width/2-200, height/2),
+                cv::FONT_HERSHEY_PLAIN, 4, cv::Scalar(255, 255, 255), 2);
+            //화면출력
+            cv::imshow("GAME", frame);
+            std::cout << "게임 클리어";
+            cv::waitKey(5000);
+            break;
+        }
+        //화면출력
+        cv::imshow("GAME", frame);
+        //이전단계의 사진 데이터를 현재사진에 덮어씌운다
+        gray_frame.copyTo(prev_gray);
+        //게임클리어를 하기 싫으면 esc 강제종료
+        if (cv::waitKey(10) == 27) break;
+
+    } 
+    // --- 추가할 부분: 배경음악 종료 ---
+    mciSendString(L"stop myBGM", NULL, 0, NULL);
+    mciSendString(L"close myBGM", NULL, 0, NULL);
+    //웹캠종료
+    cap.release();
+    //열려있는 오픈CV창 다 종료
+    cv::destroyAllWindows();
+}
