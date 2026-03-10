@@ -1,0 +1,135 @@
+<함수>
+def 함수이름():
+	문장
+
+def 함수이름(매개변수,매개변수...):
+	문장
+
+
+가변매개변수
+- 매개변수를 원하는 만큼 받을 수 있는 함수
+def 함수이름(매개변수,매개변수..*가변매개변수):
+	문장
+- 가변매개변수 뒤에는 일반 매개변수가 올수없음
+- 가변매개변수는 하나만 사용가능
+ex)
+def print_fruits(*fruits):
+    for fruit in fruits:
+        print(f"과일: {fruit}")
+print_fruits("사과", "바나나", "포도")
+# 과일: 사과
+# 과일: 바나나
+# 과일: 포도
+
+
+기본매개변수
+- 매개변수에 아무것도 넣지않아도 들어가는 값 = 값을 전달받지 못했을 때 미리 정해진 '기본값'을 사용
+- 기본매개변수가 가변매개변수보다 앞에오면 안됨
+ex)
+def greet(name, message="안녕하세요!"):
+    print(f"{name}님, {message}")
+greet("철수")              # 기본값 사용
+greet("영희", "반가워요!") # 새로운 값 사용
+# 철수님, 안녕하세요!
+# 영희님, 반가워요!
+
+
+키워드매개변수
+- 가변 매개변수와 기본 매개변수를 섞어 쓸 때 매우 유용
+- 값을 줄 때 변수명 = 값 형태로 이름을 붙여서 전달하는 것
+def repeat_msg(*values, n=2):
+    for _ in range(n):
+        for value in values:
+            print(value, end=" ")
+        print() # 줄바꿈
+repeat_msg("안녕", "즐거운", "파이썬", n=3)
+# 안녕 즐거운 파이썬 
+# 안녕 즐거운 파이썬 
+# 안녕 즐거운 파이썬
+
+매개변수 순서
+일반 매개변수: a, b
+기본 매개변수: c=10
+가변 매개변수: *args
+키워드 매개변수: 가변 매개변수 뒤에 오는 모든 변수
+
+리턴
+함수끝날때 사용
+return 100 ---> 100
+return --> none
+--------------------
+튜플
+- (데이터, 데이터 ......)
+- 튜플은 한 번 만들어지면 요소를 변경하거나 삭제할 수 없음
+- 괄호를 생략해도 튜플로 인식할 수 있는 경우 괄호생략가능
+ex) 
+# 괄호가 없어도 튜플로 인식
+my_tuple = 10, 20, 30
+print(my_tuple)        # 출력: (10, 20, 30)
+print(type(my_tuple))  # 출력: <class 'tuple'>
+# 요소가 하나뿐인 튜플을 만들 때는 반드시 쉼표를 붙여야 합니다.
+single_tuple = (42,)   # 쉼표가 없으면 그냥 숫자로 인식함
+
+- 변수값 교환에 유용
+ex)
+a = 10
+b = 20
+# 튜플을 이용한 값 교환
+a, b = b, a
+print(f"a: {a}, b: {b}") 
+# 출력: a: 20, b: 10
+
+def call10times(func)
+이런 식의 함수를 매개변수로 사용할 때 매개변수로 쓰이는 함수를 콜백함수
+ex)
+def call_10_times(func):
+    for i in range(10):
+        func() 
+def say_hello():
+    print("안녕하세요!")
+call_10_times(say_hello)
+
+map(함수, 리스트)
+리스트의요소를 함수에 넣고 리턴된 값으로 새로운 함수를 구성해줌  ->  모든 요소를 사용
+filter(함수, 리스트)
+리스트의 요소를 함수에 넣고 리턴된 값이 True인 것으로 새로운 리스트를 구성   -> 조건에 맞는 요소만 사용
+ex)
+numbers = [1, 2, 3, 4, 5]
+m = list(map(lambda x: x + 10, numbers)) # [11, 12, 13, 14, 15]
+f = list(filter(lambda x: x > 3, numbers)) # [4, 5]
+
+람다
+- def로 함수를 정의할 필요 없이, 딱 한 줄로 필요한 기능을 만들 때 사용
+- lamda 매개변수: 리턴값
+- 함수를 매개변수로 받는 함수(map, filter, sort 등)와 같이 쓰일 때 유용
+- 람다 활용                                         리스트내포 활용
+list(map(lambda x: x*x, nums))                     [x*x for x in nums]
+list(filter(lambda x: x>0, nums))                  [x for x in nums if x > 0]
+
+---------------------------------------
+파일처리
+file = open("basic.txt", "w")
+     = open (파일경로, 모드)
+file.close()
+
+w 쓰기모드
+a append 뒤에 이어쓰기
+r 읽기모드
+
+with 키워드
+구문이 종료될때 자동으로  파일이 닫혀 실수를 줄일 수 있음   -> file.close()를 직접 호출하지 않아도 
+with open(파일경로,모드) as 파일객체 :
+	문장
+ex)
+encoding="utf-8"을 써주면 한글이 파일로 저장될 때 깨지지않고 잘 나오게 
+# 1. 파일 쓰기 (w: 새로 쓰기)
+with open("test.txt", "w", encoding="utf-8") as file:
+    file.write("파이썬 파일 처리 연습 중입니다.")
+
+# 2. 파일 이어쓰기 (a: 추가하기)
+with open("test.txt", "a", encoding="utf-8") as file:
+    file.write("내용을 추가합니다.")
+
+# 3. 읽기
+with open("test.txt", "r", encoding="utf-8") as file:
+     data = file.read()
