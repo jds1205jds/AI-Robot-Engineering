@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3 
 
 path = '/mnt/c/Users/[UserID]/Code/sql/sqlite/sample1/'
 conn = sqlite3.connect("addressbook.db")
