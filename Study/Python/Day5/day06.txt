@@ -1,0 +1,36 @@
+<예외처리>
+
+구문 오류 (Syntax Error) : 코드를 실행하기도 전에 문법이 틀려 발생하는 에러
+예외 (Exception) : 문법은 맞지만, 실행 중에 발생하는 에러
+
+try :
+예외가 발생할 가능성이 있는 코드
+except :
+예외가 발생했을 때 실행할 코드
+else :
+예외가 발생하지 않았을 때 실행할 코드
+finally : 
+예외와 상관없이 무조건 실행할 코드
+
+try + except
+try + except + else
+try + except + finally
+try + except + else + finally
+try + finally
+이 5개의 조합 이외에는 구문오류 발생
+
+
+예외객체 : 예외 정보를 담고있는 객체
+- 예외종류자리에 Exception을 넣으면 모든 예외 발생 경우 다 가능
+- except 예외종류1:
+  except 예외종류2:
+  except 예외종류3
+으로도 가능
+ 
+try : 
+예외가 발생할 가능성이 있는 코드
+except  예외종류 as 예외객체를 활용할 수 있는 변수 이름 :
+예외발생 했을 때 코드 
+
+raise 구문
+- 예외를 강제로 발생시킬때 사용
