@@ -55,7 +55,7 @@ if __name__ == '__main__':
         if not ret:
             break
 
-        # 변수명 오타 수정: processed_ing -> processed_img
+        # 변수명 오타 수정: processed_img -> processed_img
         text, processed_img = get_ocr_result(frame)
         display_frame = cv2.flip(frame, 1)  # 거울 모드
 
